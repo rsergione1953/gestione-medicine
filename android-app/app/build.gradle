@@ -1,0 +1,30 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "it.spsoft.gestionemedicine"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "it.spsoft.gestionemedicine"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    sourceSets {
+        main.assets.srcDir(layout.buildDirectory.dir("generated/web-assets"))
+    }
+}
+
+tasks.register("copyWebApp", Copy) {
+    from(rootProject.file("../gestione_medicine.html"))
+    into(layout.buildDirectory.dir("generated/web-assets"))
+    rename { "index.html" }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("copyWebApp")
+}

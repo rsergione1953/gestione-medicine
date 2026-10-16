@@ -1,0 +1,16 @@
+# Local medicine data and backups may contain personal health information.
+*.db
+*.sqlite
+*.sqlite3
+backup-medicine*.json
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Android / Gradle build output and local IDE settings
+.gradle/
+**/build/
+local.properties
+.idea/

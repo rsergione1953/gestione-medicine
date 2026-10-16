@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153b37">
+  <title>Gestione Medicine</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #19332f;
+      --muted: #687b76;
+      --paper: #f4f7f4;
+      --card: #fff;
+      --green: #176b57;
+      --green-dark: #124c41;
+      --line: #dce6e0;
+      --warning: #9c4b08;
+      --warning-bg: #fff1d9;
+      --danger: #a33434;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar { background: var(--green-dark); color: #fff; padding: 22px max(20px, calc((100vw - 1120px) / 2)); }
+    .topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    h1 { margin: 0; font-size: clamp(1.35rem, 4vw, 2rem); letter-spacing: -.03em; }
+    .subtitle { margin: 5px 0 0; color: #d1e4dc; font-size: .94rem; }
+    main { max-width: 1120px; margin: 0 auto; padding: 22px 20px 48px; }
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .summary-item { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 15px 18px; }
+    .summary-number { display: block; font-size: 1.65rem; font-weight: 750; }
+    .summary-label { color: var(--muted); font-size: .86rem; }
+    .alert { border-radius: 12px; padding: 13px 16px; margin: 0 0 16px; }
+    .alert-low { background: var(--warning-bg); color: #713505; border: 1px solid #f2d5a3; }
+    .alert-error { background: #ffeded; color: #7b2323; border: 1px solid #f0c4c4; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin: 18px 0; }
+    .toolbar .spacer { flex: 1; }
+    .search { flex: 1 1 220px; min-width: 180px; }
+    .patient-filter { flex: 0 1 220px; min-height: 42px; border: 1px solid #cbd9d1; border-radius: 9px; padding: 9px 12px; background: #fff; color: var(--ink); }
+    input[type="search"], input[type="text"], input[type="number"] {
+      width: 100%; border: 1px solid #cbd9d1; border-radius: 9px; padding: 10px 12px;
+      color: var(--ink); background: #fff; min-height: 42px;
+    }
+    input:focus { outline: 3px solid #9ed5bf; border-color: var(--green); }
+    .btn { border: 1px solid transparent; border-radius: 9px; padding: 10px 13px; min-height: 42px; font-weight: 650; }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: #105542; }
+    .btn-soft { background: #e8f1ec; color: var(--green-dark); border-color: #d1e3d9; }
+    .btn-plain { background: #fff; color: var(--ink); border-color: var(--line); }
+    .btn-danger { background: #fff0f0; color: var(--danger); border-color: #efcece; }
+    .btn-small { min-height: 36px; padding: 7px 10px; }
+    .medicines { display: block; }
+    .patient-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0 0 24px; }
+    .patient-heading { grid-column: 1 / -1; margin: 4px 0 0; padding: 0 0 8px; border-bottom: 1px solid var(--line); font-size: 1.2rem; }
+    .medicine-card { background: var(--card); border: 1px solid var(--line); border-radius: 15px; padding: 17px; box-shadow: 0 3px 12px #163b2a0a; }
+    .medicine-card.low { border-color: #e8c78d; box-shadow: inset 4px 0 #d28a28, 0 3px 12px #163b2a0a; }
+    .card-head { display: flex; align-items: flex-start; gap: 12px; }
+    .select-medicine { margin-top: 5px; accent-color: var(--green); width: 18px; height: 18px; }
+    .card-title { flex: 1; min-width: 0; }
+    .card-title h2 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
+    .patient { margin-top: 4px; color: var(--muted); font-size: .92rem; }
+    .stock-status { white-space: nowrap; border-radius: 999px; padding: 5px 9px; font-size: .75rem; font-weight: 750; background: #e6f3e9; color: #28643b; }
+    .low .stock-status { background: var(--warning-bg); color: var(--warning); }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin: 17px 0; }
+    .detail-label { display: block; margin-bottom: 2px; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .045em; }
+    .detail-value { font-size: .94rem; overflow-wrap: anywhere; }
+    .estimate { color: var(--green-dark); font-weight: 650; }
+    .estimate-unknown { color: var(--muted); font-size: .84rem; }
+    .stock-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 13px; border-top: 1px solid #edf1ee; }
+    .stock-count { font-size: 1.15rem; font-weight: 750; white-space: nowrap; }
+    .stock-actions, .card-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .card-actions { justify-content: flex-end; margin-top: 13px; }
+    .empty { grid-column: 1 / -1; background: #fff; border: 1px dashed #c7d7cd; border-radius: 14px; color: var(--muted); padding: 36px 18px; text-align: center; }
+    .footer-note { color: var(--muted); font-size: .8rem; margin-top: 22px; line-height: 1.5; }
+    dialog { border: 0; border-radius: 16px; padding: 0; width: min(620px, calc(100vw - 28px)); max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 70px #102c2460; }
+    dialog::backdrop { background: #0b211bc0; }
+    .dialog-body { padding: 22px; }
+    .dialog-body h2 { margin: 0 0 18px; }
+    .field { margin: 0 0 13px; }
+    .field label { display: block; margin-bottom: 5px; font-size: .88rem; font-weight: 650; }
+    .help-text { color: var(--muted); font-size: .79rem; line-height: 1.45; margin: 5px 0 0; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    .dose-editor { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 14px 0 4px; margin: 12px 0; }
+    .dose-editor h3 { margin: 0 0 6px; font-size: 1rem; }
+    .dose-row { display: grid; grid-template-columns: minmax(90px, 1fr) 100px 100px auto; gap: 7px; align-items: center; margin: 8px 0; }
+    .dose-row .btn { padding-inline: 9px; }
+    .unit-warning { color: var(--warning); background: var(--warning-bg); border-radius: 8px; padding: 9px 11px; font-size: .82rem; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+    .print-heading { display: none; }
+    @media (max-width: 720px) {
+      .topbar { padding: 18px 16px; }
+      main { padding: 16px 14px 36px; }
+      .summary { gap: 8px; }
+      .summary-item { padding: 12px 10px; }
+      .summary-number { font-size: 1.35rem; }
+      .summary-label { font-size: .75rem; }
+      .patient-group { grid-template-columns: 1fr; }
+      .patient-heading { grid-column: 1; }
+      .toolbar .spacer { display: none; }
+      .toolbar > button, .toolbar > select { flex: 1 1 calc(50% - 8px); }
+      .dose-row { grid-template-columns: 1fr 1fr; }
+      .dose-row input:first-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 390px) {
+      .stock-row { align-items: flex-start; flex-direction: column; }
+      .stock-actions { width: 100%; }
+      .stock-actions .btn { flex: 1; }
+      .stock-status { font-size: .68rem; }
+    }
+    @media print {
+      @page { margin: 14mm; }
+      body { background: #fff; color: #111; font-size: 10pt; }
+      .topbar { background: #fff; color: #111; padding: 0 0 10px; border-bottom: 2px solid #333; }
+      .subtitle { color: #444; }
+      main { max-width: none; padding: 10px 0; }
+      .summary, .alert, .toolbar, .stock-actions, .card-actions, .select-medicine, .footer-note { display: none !important; }
+      .print-heading { display: block; margin: 12px 0; }
+      .patient-group { display: block; margin-bottom: 16px; }
+      .patient-heading { margin: 10px 0; border: 0; }
+      .medicine-card { display: none; box-shadow: none; border: 1px solid #aaa; border-radius: 0; margin: 0 0 8px; padding: 10px; break-inside: avoid; }
+      .medicine-card[data-print-visible="true"] { display: block; }
+      .low { border-left: 4px solid #b7791f !important; }
+      .stock-status { border: 1px solid #888; background: #fff !important; color: #111 !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <h1>Gestione Medicine</h1>
+        <p class="subtitle">Terapie e scorte, in un unico posto</p>
+      </div>
+      <button class="btn btn-soft" id="notifications-button" type="button">Attiva avvisi</button>
+    </div>
+  </header>
+  <main>
+    <section class="summary" aria-label="Riepilogo scorte">
+      <div class="summary-item"><span class="summary-number" id="total-count">0</span><span class="summary-label">Farmaci registrati</span></div>
+      <div class="summary-item"><span class="summary-number" id="low-count">0</span><span class="summary-label">Da riordinare</span></div>
+      <div class="summary-item"><span class="summary-number" id="estimate-count">0</span><span class="summary-label">Con previsione esaurimento</span></div>
+    </section>
+    <div id="storage-warning" class="alert alert-error" role="alert" hidden></div>
+    <div id="low-stock-alert" class="alert alert-low" role="status" hidden></div>
+    <div class="toolbar" aria-label="Azioni">
+      <input class="search" id="search" type="search" placeholder="Cerca farmaco o persona…" aria-label="Cerca farmaco o persona">
+      <select class="patient-filter" id="patient-filter" aria-label="Filtra per paziente"><option value="">Tutti i pazienti</option></select>
+      <button class="btn btn-primary" id="add-button" type="button">＋ Aggiungi farmaco</button>
+      <button class="btn btn-soft" id="low-filter" type="button" aria-pressed="false">⚠ Sottoscorta</button>
+      <span class="spacer"></span>
+      <button class="btn btn-plain" id="print-selected" type="button">Stampa selezionati</button>
+      <button class="btn btn-plain" id="print-all" type="button">Stampa tutto / PDF</button>
+      <button class="btn btn-plain" id="export-button" type="button">Esporta backup</button>
+      <button class="btn btn-plain" id="import-button" type="button">Importa backup</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </div>
+    <div class="print-heading" id="print-heading"></div>
+    <section class="medicines" id="medicines" aria-live="polite"></section>
+    <p class="footer-note">I dati sono salvati su questo dispositivo e in questo browser. Esporta periodicamente un backup JSON per conservarli o trasferirli. Nel browser le notifiche richiedono il supporto del browser e, di norma, una connessione sicura; nell'app Android serve il permesso notifiche. Questa app non sostituisce le indicazioni del medico o del farmacista.</p>
+  </main>
+
+  <dialog id="medicine-dialog">
+    <form class="dialog-body" id="medicine-form">
+      <h2 id="medicine-dialog-title">Aggiungi farmaco</h2>
+      <input id="medicine-id" type="hidden">
+      <div class="field"><label for="person">Per chi</label><input id="person" type="text" maxlength="100" required></div>
+      <div class="field"><label for="name">Nome farmaco</label><input id="name" type="text" maxlength="120" required></div>
+      <div class="field">
+        <label for="stock-unit">Unità usata per scorta e dosi</label>
+        <select id="stock-unit" class="patient-filter" style="width:100%">
+          <option>compresse</option><option>capsule</option><option>gocce</option><option>ml</option>
+          <option>cucchiaini</option><option>misurini</option><option>bustine</option><option>dosi</option><option>unità</option><option value="custom">Personalizzata…</option>
+        </select>
+        <input id="custom-unit" type="text" maxlength="30" placeholder="Nome unità (es. spruzzi)" hidden>
+        <p class="help-text">Scorta e quantità assunte devono usare la stessa unità. Se la cambi, ricontrolla dosi, confezione e soglia.</p>
+      </div>
+      <div class="field">
+        <label for="quantity">Quantità attuale</label>
+        <input id="quantity" type="number" min="0" step="any" required>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="threshold">Avviso scorta minima (<span id="unit-label-threshold">unità</span>)</label><input id="threshold" type="number" min="0" step="any" value="5" required></div>
+        <div class="field"><label for="package-amount">Contenuto confezione</label><input id="package-amount" type="number" min="0" step="any" placeholder="Facoltativo"></div>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="package-unit">Unità sulla confezione</label><input id="package-unit" type="text" maxlength="30" placeholder="Es. ml, g, compresse"></div>
+        <div class="field"><label for="conversion-factor">Unità di consumo per 1 unità confezione</label><input id="conversion-factor" type="number" min="0" step="any" placeholder="Es. 20 gocce/ml"></div>
+      </div>
+      <p class="help-text">Esempio: flacone da 100 ml, con conversione indicata di 20 gocce/ml → 2.000 gocce per flacone. Per le polveri, usa il numero di cucchiaini per confezione solo se lo conosci: l’app non presume densità o misure.</p>
+      <div id="package-preview" class="help-text"></div>
+      <div class="dose-editor">
+        <h3>Assunzioni giornaliere</h3>
+        <p class="help-text">Inserisci la quantità per assunzione e quante volte al giorno. La somma serve a stimare i giorni rimanenti.</p>
+        <div id="dose-rows"></div>
+        <button class="btn btn-soft btn-small" id="add-dose-row" type="button">＋ Aggiungi assunzione</button>
+        <div class="field" style="margin-top:12px"><label for="daily-average">Consumo medio al giorno (facoltativo, per terapia al bisogno/variabile)</label><input id="daily-average" type="number" min="0" step="any" placeholder="Lascia vuoto per sommare le assunzioni"></div>
+      </div>
+      <details style="margin:10px 0 14px">
+        <summary>Note terapia (testo libero)</summary>
+        <div class="field" style="margin-top:10px"><label for="dose">Dosaggio / indicazioni</label><input id="dose" type="text" maxlength="120" placeholder="Es. dopo i pasti"></div>
+        <div class="field"><label for="schedule">Orari / altre indicazioni</label><input id="schedule" type="text" maxlength="160" placeholder="Es. Mattina dopo colazione"></div>
+      </details>
+      <div id="unit-warning" class="unit-warning" hidden>Hai cambiato unità: controlla e aggiorna quantità, soglia, confezione e dosi giornaliere prima di salvare.</div>
+      <div class="dialog-actions">
+        <button class="btn btn-plain" type="button" data-close>Annulla</button>
+        <button class="btn btn-primary" type="submit">Salva</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="quantity-dialog">
+    <form class="dialog-body" id="quantity-form">
+      <h2 id="quantity-dialog-title">Aggiorna quantità</h2>
+      <input id="quantity-id" type="hidden">
+      <div class="field"><label for="quantity-value">Nuova quantità disponibile</label><input id="quantity-value" type="number" min="0" step="any" required></div>
+      <div class="dialog-actions">
+        <button class="btn btn-plain" type="button" data-close>Annulla</button>
+        <button class="btn btn-primary" type="submit">Aggiorna scorta</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "gestione-medicine-v1";
+      const LOW_KEY = "gestione-medicine-low-v1";
+      const list = document.getElementById("medicines");
+      const medicineDialog = document.getElementById("medicine-dialog");
+      const quantityDialog = document.getElementById("quantity-dialog");
+      const storageWarning = document.getElementById("storage-warning");
+      let items = [];
+      let lowOnly = false;
+      let printMode = null;
+      let previouslyLow = new Set();
+
+      function readStoredItems() {
+        try {
+          const value = localStorage.getItem(STORAGE_KEY);
+          if (!value) return [];
+          const parsed = JSON.parse(value);
+          if (!Array.isArray(parsed)) throw new Error("Il formato dei dati salvati non è valido.");
+          return parsed.map(validateItem);
+        } catch (error) {
+          storageWarning.hidden = false;
+          storageWarning.textContent = `Impossibile leggere i dati salvati: ${error.message}. Esporta o recupera il backup prima di continuare.`;
+          return [];
+        }
+      }
+
+      function validateItem(item) {
+        if (!item || typeof item !== "object") throw new Error("È presente una terapia non valida.");
+        const quantity = Number(item.quantity);
+        const threshold = Number(item.threshold);
+        if (!Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(threshold) || threshold < 0) {
+          throw new Error("Le quantità nel backup devono essere numeri non negativi.");
+        }
+        const name = String(item.name || "").trim();
+        const person = String(item.person || "").trim();
+        if (!name || !person) throw new Error("Ogni farmaco deve avere un nome e una persona.");
+        const unit = String(item.unit || "unità").trim();
+        const packageAmount = item.packageAmount == null || item.packageAmount === ""
+          ? null : Number(item.packageAmount);
+        const conversionFactor = item.conversionFactor == null || item.conversionFactor === ""
+          ? null : Number(item.conversionFactor);
+        if ((packageAmount === null) !== (conversionFactor === null) ||
+            (packageAmount !== null && (!Number.isFinite(packageAmount) || packageAmount <= 0 ||
+              !Number.isFinite(conversionFactor) || conversionFactor <= 0))) {
+          throw new Error("Contenuto confezione e conversione devono essere entrambi positivi.");
+        }
+        const doses = Array.isArray(item.doses) ? item.doses.map(dose => {
+          const amount = Number(dose.amount);
+          const timesPerDay = Number(dose.timesPerDay);
+          if (!Number.isFinite(amount) || amount <= 0 ||
+              !Number.isFinite(timesPerDay) || timesPerDay <= 0) {
+            throw new Error("Ogni assunzione deve avere quantità e frequenza positive.");
+          }
+          return { label: String(dose.label || ""), amount, timesPerDay };
+        }) : [];
+        const dailyAverage = item.dailyAverage == null || item.dailyAverage === ""
+          ? null : Number(item.dailyAverage);
+        if (dailyAverage !== null && (!Number.isFinite(dailyAverage) || dailyAverage < 0)) {
+          throw new Error("Il consumo medio deve essere un numero non negativo.");
+        }
+        return {
+          id: String(item.id || createId()),
+          person, name,
+          dose: String(item.dose || ""),
+          schedule: String(item.schedule || ""),
+          quantity, threshold, unit,
+          packageAmount,
+          packageUnit: String(item.packageUnit || unit),
+          conversionFactor,
+          doses,
+          dailyAverage,
+          selected: Boolean(item.selected)
+        };
+      }
+
+      function saveItems() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+          storageWarning.hidden = true;
+        } catch (error) {
+          storageWarning.hidden = false;
+          storageWarning.textContent = `Impossibile salvare i dati su questo dispositivo: ${error.message}. Esporta un backup.`;
+        }
+      }
+
+      function createId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+        if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+          const bytes = new Uint8Array(16);
+          window.crypto.getRandomValues(bytes);
+          return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+        }
+        return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[char]);
+      }
+
+      function isLow(item) { return item.quantity <= item.threshold; }
+      function itemById(id) { return items.find(item => item.id === id); }
+
+      function dailyConsumption(item) {
+        if (item.dailyAverage !== null && item.dailyAverage > 0) return item.dailyAverage;
+        if (!item.doses.length) return null;
+        const total = item.doses.reduce((sum, dose) => sum + dose.amount * dose.timesPerDay, 0);
+        return total > 0 ? total : null;
+      }
+
+      function estimate(item) {
+        const daily = dailyConsumption(item);
+        if (daily === null) return null;
+        const days = item.quantity / daily;
+        const date = new Date();
+        date.setDate(date.getDate() + Math.ceil(days));
+        return { daily, days, date };
+      }
+
+      function formatNumber(value) {
+        return new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 }).format(value);
+      }
+
+      function formatEstimate(item) {
+        const result = estimate(item);
+        if (!result) return `<span class="estimate-unknown">Stima non disponibile: completa il consumo giornaliero.</span>`;
+        if (result.days === 0) return `<span class="estimate">Esaurito</span>`;
+        return `<span class="estimate">Circa ${formatNumber(result.days)} giorni · ${result.date.toLocaleDateString("it-IT")}</span>`;
+      }
+
+      function packageUnits(item) {
+        if (item.packageAmount === null || item.conversionFactor === null) return null;
+        return item.packageAmount * item.conversionFactor;
+      }
+
+      function updatePatientFilter() {
+        const select = document.getElementById("patient-filter");
+        const previous = select.value;
+        const patients = [...new Set(items.map(item => item.person))]
+          .sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+        select.innerHTML = `<option value="">Tutti i pazienti</option>${patients.map(person =>
+          `<option value="${escapeHtml(person)}">${escapeHtml(person)}</option>`).join("")}`;
+        select.value = patients.includes(previous) ? previous : "";
+      }
+
+      function notifyNewLowStock() {
+        let currentLow = new Set(items.filter(isLow).map(item => item.id));
+        let oldLow = previouslyLow;
+        previouslyLow = currentLow;
+        try { localStorage.setItem(LOW_KEY, JSON.stringify([...currentLow])); } catch (error) {
+          storageWarning.hidden = false;
+          storageWarning.textContent = `Impossibile salvare lo stato degli avvisi: ${error.message}.`;
+        }
+        if (window.NativeApp) {
+          for (const id of oldLow) {
+            if (!currentLow.has(id)) window.NativeApp.clearLowStock(id);
+          }
+          for (const item of items) {
+            if (currentLow.has(item.id) && !oldLow.has(item.id)) {
+              window.NativeApp.showLowStock(item.id, item.name, item.quantity, true);
+            }
+          }
+        } else if ("Notification" in window && Notification.permission === "granted") {
+          const newlyLow = items.filter(item => currentLow.has(item.id) && !oldLow.has(item.id));
+          if (newlyLow.length) new Notification("Scorta medicine in esaurimento", {
+            body: newlyLow.map(item => `${item.name}: ${item.quantity} unità`).join("\n")
+          });
+        }
+      }
+
+      function render() {
+        const lowItems = items.filter(isLow);
+        const estimates = items.filter(item => estimate(item) !== null);
+        document.getElementById("total-count").textContent = items.length;
+        document.getElementById("low-count").textContent = lowItems.length;
+        document.getElementById("estimate-count").textContent = estimates.length;
+        updatePatientFilter();
+        const lowAlert = document.getElementById("low-stock-alert");
+        lowAlert.hidden = lowItems.length === 0;
+        lowAlert.textContent = lowItems.length
+          ? `Attenzione: ${lowItems.length} ${lowItems.length === 1 ? "farmaco è" : "farmaci sono"} sottoscorta: ${lowItems.map(item => `${item.person} — ${item.name} (${formatNumber(item.quantity)} ${item.unit}${estimate(item) ? `, circa ${formatNumber(estimate(item).days)} giorni` : ""})`).join("; ")}.`
+          : "";
+
+        const query = document.getElementById("search").value.trim().toLocaleLowerCase("it");
+        const patient = document.getElementById("patient-filter").value;
+        const shown = printMode
+          ? items
+          : items.filter(item => (!patient || item.person === patient) &&
+            (!lowOnly || isLow(item)) &&
+            (!query || `${item.person} ${item.name} ${item.dose} ${item.schedule} ${item.unit}`.toLocaleLowerCase("it").includes(query)));
+        if (!shown.length) {
+          list.innerHTML = `<div class="empty">${items.length ? "Nessun farmaco corrisponde alla ricerca." : "Nessun farmaco inserito. Premi “Aggiungi farmaco” per iniziare."}</div>`;
+          notifyNewLowStock();
+          return;
+        }
+        const groups = new Map();
+        for (const item of shown) {
+          if (!groups.has(item.person)) groups.set(item.person, []);
+          groups.get(item.person).push(item);
+        }
+        list.innerHTML = [...groups.entries()].map(([person, patientItems]) => `
+          <section class="patient-group" aria-label="Farmaci di ${escapeHtml(person)}">
+            <h2 class="patient-heading">${escapeHtml(person)}</h2>
+            ${patientItems.map(item => {
+              const packSize = packageUnits(item);
+              const doseText = item.doses.length
+                ? item.doses.map(dose => `${formatNumber(dose.amount)} ${item.unit} × ${formatNumber(dose.timesPerDay)}/giorno${dose.label ? ` (${escapeHtml(dose.label)})` : ""}`).join("; ")
+                : item.dose || "Non specificato";
+              const packageText = packSize === null
+                ? "Contenuto confezione non configurato"
+                : `Confezione: ${formatNumber(item.packageAmount)} ${escapeHtml(item.packageUnit)} × ${formatNumber(item.conversionFactor)} = ${formatNumber(packSize)} ${escapeHtml(item.unit)}`;
+              return `
+          <article class="medicine-card${isLow(item) ? " low" : ""}" data-id="${escapeHtml(item.id)}" data-selected="${item.selected}" data-print-visible="false">
+            <div class="card-head">
+              <input class="select-medicine" type="checkbox" data-action="select" aria-label="Seleziona ${escapeHtml(item.name)}" ${item.selected ? "checked" : ""}>
+              <div class="card-title"><h2>${escapeHtml(item.name)}</h2></div>
+              <span class="stock-status">${isLow(item) ? "Sottoscorta" : "Scorta ok"}</span>
+            </div>
+            <div class="details">
+              <div><span class="detail-label">Assunzione</span><span class="detail-value">${doseText}</span></div>
+              <div><span class="detail-label">Consumo medio</span><span class="detail-value">${dailyConsumption(item) === null ? "Non specificato" : `${formatNumber(dailyConsumption(item))} ${escapeHtml(item.unit)}/giorno`}</span></div>
+              <div><span class="detail-label">Previsione esaurimento</span><span class="detail-value">${formatEstimate(item)}</span></div>
+              <div><span class="detail-label">Soglia di avviso</span><span class="detail-value">${formatNumber(item.threshold)} ${escapeHtml(item.unit)}</span></div>
+              <div><span class="detail-label">Confezione</span><span class="detail-value">${packageText}</span></div>
+              ${item.schedule ? `<div><span class="detail-label">Note</span><span class="detail-value">${escapeHtml(item.schedule)}</span></div>` : ""}
+              <div><span class="detail-label">Stato</span><span class="detail-value">${isLow(item) ? "Da riordinare" : "Disponibile"}</span></div>
+            </div>
+            <div class="stock-row">
+              <span class="stock-count">${formatNumber(item.quantity)} ${escapeHtml(item.unit)}</span>
+              <div class="stock-actions">
+                <button class="btn btn-plain btn-small" data-action="decrease" aria-label="Scala una unità di ${escapeHtml(item.name)}">− 1 ${escapeHtml(item.unit)}</button>
+                <button class="btn btn-plain btn-small" data-action="increase" aria-label="Aggiungi una unità di ${escapeHtml(item.name)}">＋ 1 ${escapeHtml(item.unit)}</button>
+                ${packSize !== null ? `<button class="btn btn-soft btn-small" data-action="add-package">＋ Confezione</button>` : ""}
+                <button class="btn btn-soft btn-small" data-action="quantity">Aggiorna quantità</button>
+              </div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-plain btn-small" data-action="edit">Modifica</button>
+              <button class="btn btn-danger btn-small" data-action="delete">Elimina</button>
+            </div>
+          </article>`;
+            }).join("")}
+          </section>`).join("");
+        notifyNewLowStock();
+      }
+
+      function commit() {
+        saveItems();
+        render();
+      }
+
+      function renderDoseRows(doses) {
+        const rows = document.getElementById("dose-rows");
+        rows.innerHTML = doses.map(dose => `
+          <div class="dose-row">
+            <input type="text" maxlength="80" aria-label="Momento dell'assunzione" placeholder="Es. mattina" value="${escapeHtml(dose.label || "")}">
+            <input type="number" min="0" step="any" aria-label="Quantità per assunzione" placeholder="Quantità" value="${dose.amount ?? ""}">
+            <input type="number" min="0" step="any" aria-label="Volte al giorno" placeholder="Volte/giorno" value="${dose.timesPerDay ?? 1}">
+            <button class="btn btn-danger btn-small" type="button" data-action="remove-dose" aria-label="Rimuovi assunzione">Rimuovi</button>
+          </div>`).join("");
+      }
+
+      function updateUnitFields() {
+        const select = document.getElementById("stock-unit");
+        const custom = document.getElementById("custom-unit");
+        const unit = select.value === "custom" ? custom.value.trim() || "unità" : select.value;
+        document.getElementById("unit-label-threshold").textContent = unit;
+        document.getElementById("package-preview").textContent = "";
+        const amount = Number(document.getElementById("package-amount").value);
+        const factor = Number(document.getElementById("conversion-factor").value);
+        const packageUnit = document.getElementById("package-unit").value.trim();
+        if (document.getElementById("package-amount").value && document.getElementById("conversion-factor").value &&
+            amount > 0 && factor > 0 && packageUnit) {
+          document.getElementById("package-preview").textContent =
+            `Una confezione contiene ${formatNumber(amount * factor)} ${unit}.`;
+        }
+        const id = document.getElementById("medicine-id").value;
+        const existing = id ? itemById(id) : null;
+        document.getElementById("unit-warning").hidden =
+          !existing || unit === existing.unit;
+      }
+
+      function openMedicine(item) {
+        document.getElementById("medicine-form").reset();
+        document.getElementById("medicine-id").value = item ? item.id : "";
+        document.getElementById("medicine-dialog-title").textContent = item ? "Modifica farmaco" : "Aggiungi farmaco";
+        document.getElementById("person").value = item ? item.person : "";
+        document.getElementById("name").value = item ? item.name : "";
+        document.getElementById("dose").value = item ? item.dose : "";
+        document.getElementById("schedule").value = item ? item.schedule : "";
+        document.getElementById("quantity").value = item ? item.quantity : 0;
+        document.getElementById("threshold").value = item ? item.threshold : 5;
+        const stockUnit = document.getElementById("stock-unit");
+        const knownUnits = [...stockUnit.options].map(option => option.value);
+        stockUnit.value = item && knownUnits.includes(item.unit) ? item.unit : (item ? "custom" : "unità");
+        const customUnit = document.getElementById("custom-unit");
+        customUnit.hidden = stockUnit.value !== "custom";
+        customUnit.value = item && stockUnit.value === "custom" ? item.unit : "";
+        document.getElementById("package-amount").value = item && item.packageAmount !== null ? item.packageAmount : "";
+        document.getElementById("package-unit").value = item ? item.packageUnit : "";
+        document.getElementById("conversion-factor").value = item && item.conversionFactor !== null ? item.conversionFactor : "";
+        document.getElementById("daily-average").value = item && item.dailyAverage !== null ? item.dailyAverage : "";
+        renderDoseRows(item ? item.doses : []);
+        updateUnitFields();
+        medicineDialog.showModal();
+      }
+
+      document.getElementById("add-button").addEventListener("click", () => openMedicine(null));
+      document.getElementById("stock-unit").addEventListener("change", event => {
+        document.getElementById("custom-unit").hidden = event.target.value !== "custom";
+        updateUnitFields();
+      });
+      document.getElementById("custom-unit").addEventListener("input", updateUnitFields);
+      ["package-amount", "package-unit", "conversion-factor"].forEach(id =>
+        document.getElementById(id).addEventListener("input", updateUnitFields));
+      document.getElementById("add-dose-row").addEventListener("click", () => {
+        const current = [...document.querySelectorAll(".dose-row")].map(row => ({
+          label: row.children[0].value,
+          amount: row.children[1].value,
+          timesPerDay: row.children[2].value
+        }));
+        current.push({ label: "", amount: "", timesPerDay: 1 });
+        renderDoseRows(current);
+      });
+      document.getElementById("dose-rows").addEventListener("click", event => {
+        if (!event.target.matches('[data-action="remove-dose"]')) return;
+        const current = [...document.querySelectorAll(".dose-row")]
+          .filter(row => row !== event.target.closest(".dose-row"))
+          .map(row => ({
+            label: row.children[0].value,
+            amount: row.children[1].value,
+            timesPerDay: row.children[2].value
+          }));
+        renderDoseRows(current);
+      });
+      document.getElementById("medicine-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = document.getElementById("medicine-id").value;
+        const quantity = Number(document.getElementById("quantity").value);
+        const threshold = Number(document.getElementById("threshold").value);
+        if (!Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(threshold) || threshold < 0) {
+          alert("Quantità e soglia devono essere numeri non negativi.");
+          return;
+        }
+        const stockUnitSelect = document.getElementById("stock-unit");
+        const unit = stockUnitSelect.value === "custom"
+          ? document.getElementById("custom-unit").value.trim()
+          : stockUnitSelect.value;
+        if (!unit) {
+          alert("Inserisci il nome dell'unità personalizzata.");
+          return;
+        }
+        const packageAmountText = document.getElementById("package-amount").value;
+        const conversionFactorText = document.getElementById("conversion-factor").value;
+        const packageUnit = document.getElementById("package-unit").value.trim();
+        if (Boolean(packageAmountText) !== Boolean(conversionFactorText) ||
+            (packageAmountText && !packageUnit)) {
+          alert("Per calcolare il contenuto della confezione, compila contenuto, unità di confezione e conversione.");
+          return;
+        }
+        const doses = [];
+        for (const row of document.querySelectorAll(".dose-row")) {
+          const label = row.children[0].value.trim();
+          const amountText = row.children[1].value;
+          const timesText = row.children[2].value;
+          if (!amountText && !label && (!timesText || timesText === "1")) continue;
+          const amount = Number(amountText);
+          const timesPerDay = Number(timesText);
+          if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(timesPerDay) || timesPerDay <= 0) {
+            alert("Ogni assunzione deve avere quantità e volte al giorno maggiori di zero, oppure va rimossa.");
+            return;
+          }
+          doses.push({ label, amount, timesPerDay });
+        }
+        const dailyAverageText = document.getElementById("daily-average").value;
+        const dailyAverage = dailyAverageText === "" ? null : Number(dailyAverageText);
+        if (dailyAverage !== null && (!Number.isFinite(dailyAverage) || dailyAverage <= 0)) {
+          alert("Il consumo medio giornaliero deve essere maggiore di zero.");
+          return;
+        }
+        const old = id ? itemById(id) : null;
+        const updated = validateItem({
+          id: id || createId(),
+          person: document.getElementById("person").value,
+          name: document.getElementById("name").value,
+          dose: document.getElementById("dose").value,
+          schedule: document.getElementById("schedule").value,
+          quantity, threshold, unit,
+          packageAmount: packageAmountText === "" ? null : Number(packageAmountText),
+          packageUnit: packageUnit || unit,
+          conversionFactor: conversionFactorText === "" ? null : Number(conversionFactorText),
+          doses, dailyAverage,
+          selected: old ? old.selected : false
+        });
+        if (old) items = items.map(item => item.id === id ? updated : item);
+        else items.push(updated);
+        medicineDialog.close();
+        commit();
+      });
+
+      document.getElementById("quantity-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = document.getElementById("quantity-id").value;
+        const item = itemById(id);
+        const quantity = Number(document.getElementById("quantity-value").value);
+        if (!item || !Number.isFinite(quantity) || quantity < 0) {
+          alert("Inserisci una quantità valida, pari o superiore a zero.");
+          return;
+        }
+        item.quantity = quantity;
+        quantityDialog.close();
+        commit();
+      });
+
+      list.addEventListener("click", event => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const card = button.closest(".medicine-card");
+        const item = itemById(card.dataset.id);
+        if (!item) return;
+        switch (button.dataset.action) {
+          case "decrease":
+            if (item.quantity === 0) return;
+            item.quantity--;
+            commit();
+            break;
+          case "increase":
+            item.quantity++;
+            commit();
+            break;
+          case "add-package": {
+            const contents = packageUnits(item);
+            if (contents === null || !Number.isFinite(contents) || contents <= 0) {
+              alert("La confezione non ha una conversione valida verso l'unità di consumo.");
+              return;
+            }
+            item.quantity += contents;
+            commit();
+            break;
+          }
+          case "quantity":
+            document.getElementById("quantity-id").value = item.id;
+            document.getElementById("quantity-dialog-title").textContent = `Scorta: ${item.name}`;
+            document.getElementById("quantity-value").value = item.quantity;
+            quantityDialog.showModal();
+            break;
+          case "edit":
+            openMedicine(item);
+            break;
+          case "delete":
+            if (confirm(`Eliminare ${item.name} per ${item.person}?`)) {
+              items = items.filter(current => current.id !== item.id);
+              commit();
+            }
+            break;
+        }
+      });
+
+      list.addEventListener("change", event => {
+        if (event.target.matches('input[data-action="select"]')) {
+          const item = itemById(event.target.closest(".medicine-card").dataset.id);
+          if (item) { item.selected = event.target.checked; commit(); }
+        }
+      });
+      document.getElementById("search").addEventListener("input", render);
+      document.getElementById("patient-filter").addEventListener("change", render);
+      document.getElementById("low-filter").addEventListener("click", event => {
+        lowOnly = !lowOnly;
+        event.currentTarget.setAttribute("aria-pressed", String(lowOnly));
+        event.currentTarget.classList.toggle("btn-primary", lowOnly);
+        event.currentTarget.classList.toggle("btn-soft", !lowOnly);
+        render();
+      });
+      document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
+
+      function printItems(mode) {
+        if (mode === "selected" && !items.some(item => item.selected)) {
+          alert("Seleziona almeno un farmaco da stampare.");
+          return;
+        }
+        printMode = mode;
+        document.getElementById("print-heading").textContent =
+          `${mode === "selected" ? "Terapie selezionate" : "Elenco farmaci"} — ${new Date().toLocaleString("it-IT")}`;
+        render();
+        document.querySelectorAll(".medicine-card").forEach(card => {
+          const item = itemById(card.dataset.id);
+          card.dataset.printVisible = String(mode === "all" || (item && item.selected));
+        });
+        document.body.dataset.printMode = mode;
+        if (window.NativeApp && typeof window.NativeApp.printPage === "function") window.NativeApp.printPage();
+        else window.print();
+      }
+      document.getElementById("print-selected").addEventListener("click", () => printItems("selected"));
+      document.getElementById("print-all").addEventListener("click", () => printItems("all"));
+      window.addEventListener("afterprint", () => {
+        document.body.dataset.printMode = "";
+        printMode = null;
+        document.querySelectorAll(".medicine-card").forEach(card => card.dataset.printVisible = "false");
+        render();
+      });
+
+      document.getElementById("export-button").addEventListener("click", () => {
+        const data = { schemaVersion: 1, exportedAt: new Date().toISOString(), items };
+        const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `backup-medicine-${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+      document.getElementById("import-button").addEventListener("click", () => document.getElementById("import-file").click());
+      document.getElementById("import-file").addEventListener("change", async event => {
+        const file = event.target.files[0];
+        if (!file) return;
+        try {
+          const parsed = JSON.parse(await file.text());
+          const imported = Array.isArray(parsed) ? parsed : parsed.items;
+          if (!Array.isArray(imported)) throw new Error("Il file non contiene un elenco di farmaci riconosciuto.");
+          const validated = imported.map(validateItem);
+          if (!confirm(`Importare ${validated.length} farmaci? I dati attualmente presenti verranno sostituiti.`)) return;
+          items = validated;
+          commit();
+        } catch (error) {
+          alert(`Importazione non riuscita: ${error.message}`);
+        } finally {
+          event.target.value = "";
+        }
+      });
+
+      document.getElementById("notifications-button").addEventListener("click", async event => {
+        if (window.NativeApp) {
+          window.NativeApp.requestNotificationPermission();
+          return;
+        }
+        if (!("Notification" in window)) {
+          alert("Questo browser non supporta le notifiche. Gli avvisi sottoscorta restano visibili nell'app.");
+          return;
+        }
+        if (!window.isSecureContext && location.protocol !== "file:") {
+          alert("Per le notifiche apri l'app tramite HTTPS o localhost. Gli avvisi sottoscorta restano visibili nell'app.");
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          event.currentTarget.textContent = "Avvisi attivi";
+          const lowItems = items.filter(isLow);
+          if (lowItems.length) new Notification("Scorta medicine in esaurimento", {
+            body: lowItems.map(item => `${item.name}: ${item.quantity} unità`).join("\n")
+          });
+        } else {
+          alert("Notifiche non autorizzate. Gli avvisi sottoscorta restano visibili nell'app.");
+        }
+      });
+
+      window.onNativeNotificationPermission = granted => {
+        const button = document.getElementById("notifications-button");
+        button.textContent = granted ? "Avvisi attivi" : "Attiva avvisi";
+        if (granted) {
+          for (const item of items.filter(isLow)) {
+            window.NativeApp.showLowStock(item.id, item.name, item.quantity, true);
+          }
+        } else {
+          alert("Per ricevere gli avvisi, abilita le notifiche di Gestione Medicine nelle impostazioni Android.");
+        }
+      };
+
+      try {
+        const savedLow = JSON.parse(localStorage.getItem(LOW_KEY) || "[]");
+        if (Array.isArray(savedLow)) previouslyLow = new Set(savedLow);
+      } catch (error) {
+        storageWarning.hidden = false;
+        storageWarning.textContent = `Impossibile leggere lo stato degli avvisi: ${error.message}.`;
+      }
+      items = readStoredItems();
+      if (window.NativeApp) {
+        document.getElementById("notifications-button").textContent =
+          window.NativeApp.hasNotificationPermission() ? "Avvisi attivi" : "Attiva avvisi";
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>
