@@ -2,6 +2,15 @@
 
 La nuova interfaccia è disponibile in `gestione_medicine.html`: aprila con un browser moderno su PC o telefono. Non richiede installazione né connessione per gestire l'elenco. I dati sono conservati localmente nel browser/dispositivo; usa **Esporta backup** per salvarne una copia e **Importa backup** per ripristinarla o trasferirla. L'elenco iniziale è vuoto: aggiungi i dati dei tuoi pazienti sul tuo dispositivo.
 
+## Aprire sullo smartphone
+
+Apri **https://rsergione1953.github.io/gestione-medicine/** nel browser del telefono. Per aggiungerla alla schermata iniziale:
+
+- **Android (Chrome):** menu ⋮ > **Installa app** oppure **Aggiungi a schermata Home**.
+- **iPhone/iPad (Safari):** **Condividi** > **Aggiungi alla schermata Home**.
+
+Il sito serve il programma, non rimanda al repository. I dati dei pazienti restano nel browser di quel dispositivo e non vengono caricati su GitHub. Per usarli su un altro dispositivo, esporta un backup e importalo lì. Dopo il primo caricamento l'interfaccia può riaprirsi offline; per sincronizzare dispositivi serve invece un servizio online separato.
+
 ## Funzioni
 
 - Aggiunta e modifica dei farmaci, delle indicazioni, delle quantità e della soglia di avviso.
@@ -15,7 +24,7 @@ La nuova interfaccia è disponibile in `gestione_medicine.html`: aprila con un b
 
 La stima è mostrata solo se è stato specificato un consumo giornaliero. La scorta e la dose devono usare la stessa unità di consumo. Per convertire una confezione si inseriscono il contenuto, la sua unità e il fattore di conversione verificato per quello specifico prodotto: per esempio 100 ml × 20 gocce/ml = 2.000 gocce. Non si presume un rapporto universale tra millilitri e gocce o tra grammi e cucchiaini. Per le polveri, configura il numero di misurini/cucchiaini per confezione solo se noto; altrimenti la previsione resta non disponibile. Sono stime indicative, non indicazioni cliniche.
 
-Le soglie vengono controllate quando l'app è aperta e i dati cambiano: non sono promemoria programmati in background e non sostituiscono le indicazioni di un medico o farmacista. Android o le impostazioni del telefono possono disattivare suono, vibrazione o notifiche a comparsa.
+Gli avvisi nel sito sono controllati quando l'app è aperta e i dati cambiano: non sono promemoria programmati in background e non sostituiscono le indicazioni di un medico o farmacista. L'azione Android **Ho capito** con notifica persistente appartiene all'APK nativo, non all'installazione del sito come app web.
 
 ## Trasferire i dati dal programma Python
 

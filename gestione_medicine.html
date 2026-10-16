@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#153b37">
+  <meta name="description" content="Gestisci farmaci, terapie e scorte per paziente, con stime di esaurimento.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>Gestione Medicine</title>
   <style>
     :root {
@@ -391,10 +394,19 @@
           }
         } else if ("Notification" in window && Notification.permission === "granted") {
           const newlyLow = items.filter(item => currentLow.has(item.id) && !oldLow.has(item.id));
-          if (newlyLow.length) new Notification("Scorta medicine in esaurimento", {
+          if (newlyLow.length) showBrowserNotification("Scorta medicine in esaurimento", {
             body: newlyLow.map(item => `${item.name}: ${item.quantity} unità`).join("\n")
           });
         }
+      }
+
+      async function showBrowserNotification(title, options) {
+        if (navigator.serviceWorker && location.protocol === "https:") {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(title, options);
+          return;
+        }
+        new Notification(title, options);
       }
 
       function render() {
@@ -773,7 +785,7 @@
         if (permission === "granted") {
           event.currentTarget.textContent = "Avvisi attivi";
           const lowItems = items.filter(isLow);
-          if (lowItems.length) new Notification("Scorta medicine in esaurimento", {
+          if (lowItems.length) showBrowserNotification("Scorta medicine in esaurimento", {
             body: lowItems.map(item => `${item.name}: ${item.quantity} unità`).join("\n")
           });
         } else {
@@ -801,6 +813,12 @@
         storageWarning.textContent = `Impossibile leggere lo stato degli avvisi: ${error.message}.`;
       }
       items = readStoredItems();
+      if ("serviceWorker" in navigator && location.protocol === "https:") {
+        navigator.serviceWorker.register("./service-worker.js").catch(error => {
+          storageWarning.hidden = false;
+          storageWarning.textContent = `Modalità offline non disponibile: ${error.message}. L'app resta utilizzabile online.`;
+        });
+      }
       if (window.NativeApp) {
         document.getElementById("notifications-button").textContent =
           window.NativeApp.hasNotificationPermission() ? "Avvisi attivi" : "Attiva avvisi";
